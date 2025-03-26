@@ -1,6 +1,6 @@
 #Data, Hive, and Spark
 data/
-metastore/
+metastore_db/
 spark_warehouse/
 
 # Byte-compiled / optimized / DLL files
