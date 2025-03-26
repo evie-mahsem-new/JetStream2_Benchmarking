@@ -17,7 +17,7 @@ Step 2: You must run the following command within the repository to create your 
   2.4: pip install hdfs, numpy, pyspark
 ```
 
-Step 3: The data is too big to be uploaded to GitHub, so you will need to download the data from this Google Drive. This data is to be placed within the JetStream2_Benchmarking folder.
+Step 3: The data is too big to be uploaded to GitHub, so you will need to download the data from this [Google Drive](https://drive.google.com/drive/folders/1ZgM2wCeNH2hSc5HEfNSniGQDmmXkhsZi?usp=drive_link). This data is to be placed within the JetStream2_Benchmarking folder.
 
 Step 4: Run `main.py` to run the pipeline. 
 
