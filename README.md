@@ -2,6 +2,8 @@
 
 ## Setup:
 
+For this project, Hive 4.0.1, Spark 3.4.4, and Hadoop 3.3.0 are utilized.
+
 Step 1: You should do a git clone of this repository. 
 
 Step 2: You must run the following command within the repository to create your venv:
