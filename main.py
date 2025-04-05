@@ -1,11 +1,13 @@
 from pyspark.sql import SparkSession
 from hdfs import InsecureClient
 from pipeline_functions import ingest_hdfs, bronze_creation, silver_creation, gold_creation
+# from pipeline_functions_jetstream import ingest_hdfs, bronze_creation, silver_creation, gold_creation
 import time
 import os
 import numpy as np
 
 client = InsecureClient("http://localhost:9870/")
+# client = InsecureClient("http://node-master:9870/")
 local_dir = os.path.expanduser("~/JetStream2_Benchmarking/data")
                                
 spark = SparkSession.builder \
