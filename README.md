@@ -24,6 +24,10 @@ Step 4: Run `main.py` to run the pipeline.
 
 ## Ingest Data:
 
+Make sure remove data on hdfs first!!!
+
+hdfs dfs -rm -r /landing
+
 This function loops through all of the data within the data directory and uploads it into a hdfs:///landing/ directory.
 
 ## Bronze Layer:
