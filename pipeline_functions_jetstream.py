@@ -3,6 +3,8 @@ import time
 import numpy as np
 import psutil  # Import psutil for system resource monitoring
 from pyspark.sql import functions as F
+from pyspark.sql.functions import col, trim, current_timestamp
+
 
 # This function now only appends the usage data without printing
 def log_system_usage(cpu_list, memory_list, disk_read_list, disk_write_list, start_disk_read, start_disk_write):
@@ -171,7 +173,102 @@ def bronze_creation(local_dir, spark_context):
 
 
 def silver_creation(spark_context):
-    pass
+
+    def silver_data_cleaning(df):
+         return df \
+        .filter("voltage_charger IS NOT NULL AND voltage_load IS NOT NULL AND current_load IS NOT NULL") \
+        .filter("temperature_battery IS NOT NULL AND temperature_mosfet IS NOT NULL AND temperature_resistor IS NOT NULL") \
+        .filter("mode IS NOT NULL AND mission_type IS NOT NULL") \
+        .filter("start_time IS NOT NULL AND time IS NOT NULL AND battery_number IS NOT NULL AND created_at IS NOT NULL") \
+        .withColumn("mode", trim(col("mode"))) \
+        .withColumn("mission_type", trim(col("mission_type"))) \
+        .withColumn("battery_number", trim(col("battery_number"))) \
+        .withColumn("voltage_charger", col("voltage_charger").cast("double")) \
+        .withColumn("voltage_load", col("voltage_load").cast("double")) \
+        .withColumn("current_load", col("current_load").cast("double")) \
+        .withColumn("temperature_battery", col("temperature_battery").cast("double")) \
+        .withColumn("temperature_mosfet", col("temperature_mosfet").cast("double")) \
+        .withColumn("temperature_resistor", col("temperature_resistor").cast("double")) \
+        .withColumn("time", col("time").cast("double")) \
+        .withColumn("processed_at", current_timestamp()) \
+        .dropDuplicates([
+            "voltage_charger", "voltage_load", "current_load",
+            "temperature_battery", "temperature_mosfet", "temperature_resistor",
+            "mode", "mission_type"
+        ])
+    '''
+    spark_context.sql("SELECT count(*) FROM second_life_batteries_bz").show()
+    spark_context.sql("SELECT * FROM second_life_batteries_bz limit 10").show()
+    '''
+    
+    '''
+    print("Row count:", df_second_life_batteries_cleaned.count())
+    df_second_life_batteries_cleaned.select([
+        F.count(F.when(F.col(c).isNull(), c)).alias(c)
+        for c in df_second_life_batteries_cleaned.columns
+    ]).show()
+    df_second_life_batteries_cleaned.groupBy(df_second_life_batteries_cleaned.columns).count().filter("count > 1").show()
+    '''
+
+    silver_start = time.time()
+
+    #System monitoring accumulators
+    cpu_usage_list = []
+    memory_usage_list = []
+    disk_read_list = []
+    disk_write_list = []
+
+    #Track initial disk usage
+    start_disk_io = psutil.disk_io_counters()
+    prev_disk_read = start_disk_io.read_bytes
+    prev_disk_write = start_disk_io.write_bytes
+
+    spark_context.sql("CREATE DATABASE IF NOT EXISTS silver_layer")
+    spark_context.catalog.setCurrentDatabase("silver_layer")
+    tables=['recommissioned_batteries_bz', 'regular_alt_batteries_bz', 'second_life_batteries_bz']
+
+    for table in tables:
+        write_start = time.time()
+        
+        try:
+            df = spark_context.sql(f"SELECT * FROM bronze_layer.{table}")
+            #print(df_second_life_batteries.count())
+            df_cleaned=silver_data_cleaning(df)
+            
+            # Write to Hive table (creating table if not exists)
+            df_cleaned.write.mode("append").saveAsTable(f"silver_layer.{table}")
+            
+            write_end = time.time()
+            print(f"The table {table} was written into the the silver database in {np.round(write_end - write_start, 2)} seconds.")
+        except Exception as e:
+            print(f"Error processing bronze_layer.{table}: {e}")
+        
+        # Log system usage and track disk I/O after processing each file (no print, just collect data)
+        prev_disk_read, prev_disk_write = log_system_usage(
+            cpu_usage_list, memory_usage_list, disk_read_list, disk_write_list, prev_disk_read, prev_disk_write)
+
+    silver_end = time.time()
+
+    # Calculate total disk read and write throughput
+    total_disk_read = np.sum(disk_read_list) / (1024 ** 2)  # Convert bytes to MB
+    total_disk_write = np.sum(disk_write_list) / (1024 ** 2)  # Convert bytes to MB
+
+    total_data_processed = total_disk_read + total_disk_write  # Total MB processed
+    elapsed_time = silver_end - silver_start  # Total time in seconds
+
+    throughput = total_data_processed / elapsed_time  # Throughput in MB/s
+
+    # Print out system usage and throughput statistics
+    avg_cpu_usage = np.mean(cpu_usage_list)
+    avg_memory_usage = np.mean(memory_usage_list)
+
+    print(f"Silver tables creation finished in {np.round(silver_end - silver_start, 2)} seconds!")
+    print(f"\nAverage CPU Usage: {avg_cpu_usage:.2f}%")
+    print(f"Average Memory Usage: {avg_memory_usage:.2f}%")
+    print(f"Total Disk Read: {total_disk_read:.2f} MB")
+    print(f"Total Disk Write: {total_disk_write:.2f} MB")
+    print(f"Throughput: {throughput:.2f} MB/s")
+
 
 def gold_creation(spark_context):
     pass
