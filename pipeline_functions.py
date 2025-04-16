@@ -269,4 +269,59 @@ def silver_creation(spark_context):
 
 
 def gold_creation(spark_context):
-    pass
+    
+    gold_start = time.time()
+
+    #System monitoring accumulators
+    cpu_usage_list = []
+    memory_usage_list = []
+    disk_read_list = []
+    disk_write_list = []
+
+     #Track initial disk usage
+    start_disk_io = psutil.disk_io_counters()
+    prev_disk_read = start_disk_io.read_bytes
+    prev_disk_write = start_disk_io.write_bytes
+
+    spark_context.sql("CREATE DATABASE IF NOT EXISTS gold_layer")
+    spark_context.catalog.setCurrentDatabase("gold_layer")
+    
+    try: 
+       write_start = time.time()
+       df_recommissioned = spark_context.sql(f"SELECT *, 'recommissioned' AS battery_type   FROM bronze_layer.recommissioned_batteries_bz")
+       df_regular_alt = spark_context.sql(f"SELECT *, 'regular_alt' AS battery_type  FROM bronze_layer.regular_alt_batteries_bz")
+       df_second_life = spark_context.sql(f"SELECT *, 'second_life' AS battery_type  FROM bronze_layer.second_life_batteries_bz")
+
+       df_union = df_recommissioned.unionByName(df_regular_alt).unionByName(df_second_life)
+
+       df_union.show(10)
+
+       df_union.write.mode("overwrite").saveAsTable("gold_layer.all_batteries_gold")
+       write_end = time.time()
+
+       print(f"Successfully wrote unified battery table to gold_layer.all_batteries_gold in {np.round(write_end - write_start, 2)} seconds.")
+
+       # Log system usage and track disk I/O after processing each file (no print, just collect data)
+       prev_disk_read, prev_disk_write = log_system_usage(
+            cpu_usage_list, memory_usage_list, disk_read_list, disk_write_list, prev_disk_read, prev_disk_write)
+    except Exception as e:
+        print(f"Error in gold_creation: {e}")
+    
+    gold_end = time.time()
+
+    total_disk_read = np.sum(disk_read_list) / (1024 ** 2)
+    total_disk_write = np.sum(disk_write_list) / (1024 ** 2)
+    total_data_processed = total_disk_read + total_disk_write
+    elapsed_time = gold_end - gold_start
+    throughput = total_data_processed / elapsed_time
+
+    avg_cpu_usage = np.mean(cpu_usage_list)
+    avg_memory_usage = np.mean(memory_usage_list)
+
+    print(f"Gold layer creation finished in {np.round(elapsed_time, 2)} seconds!")
+    print(f"Average CPU Usage: {avg_cpu_usage:.2f}%")
+    print(f"Average Memory Usage: {avg_memory_usage:.2f}%")
+    print(f"Total Disk Read: {total_disk_read:.2f} MB")
+    print(f"Total Disk Write: {total_disk_write:.2f} MB")
+    print(f"Throughput: {throughput:.2f} MB/s")
+    
