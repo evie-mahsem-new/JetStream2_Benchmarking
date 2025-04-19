@@ -95,6 +95,7 @@ def ingest_hdfs(client, local_dir):
     print(f"Total Disk Read: {total_disk_read:.2f} MB")
     print(f"Total Disk Write: {total_disk_write:.2f} MB")
     print(f"Throughput: {throughput:.2f} MB/s")
+    return ingest_end - ingest_start, avg_cpu_usage, avg_memory_usage, total_disk_read, total_disk_write, throughput
 
 
 def bronze_creation(local_dir, spark_context):
@@ -169,7 +170,7 @@ def bronze_creation(local_dir, spark_context):
     print(f"Total Disk Read: {total_disk_read:.2f} MB")
     print(f"Total Disk Write: {total_disk_write:.2f} MB")
     print(f"Throughput: {throughput:.2f} MB/s")
-
+    return bronze_end - bronze_start, avg_cpu_usage, avg_memory_usage, total_disk_read, total_disk_write, throughput
 
 def silver_creation(spark_context):
     def silver_data_cleaning(df):
@@ -266,6 +267,7 @@ def silver_creation(spark_context):
     print(f"Total Disk Read: {total_disk_read:.2f} MB")
     print(f"Total Disk Write: {total_disk_write:.2f} MB")
     print(f"Throughput: {throughput:.2f} MB/s")
+    return silver_end - silver_start, avg_cpu_usage, avg_memory_usage, total_disk_read, total_disk_write, throughput
 
 
 def gold_creation(spark_context):
@@ -324,4 +326,4 @@ def gold_creation(spark_context):
     print(f"Total Disk Read: {total_disk_read:.2f} MB")
     print(f"Total Disk Write: {total_disk_write:.2f} MB")
     print(f"Throughput: {throughput:.2f} MB/s")
-    
+    return gold_end - gold_start, avg_cpu_usage, avg_memory_usage, total_disk_read, total_disk_write, throughput
