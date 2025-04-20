@@ -21,10 +21,15 @@ Step 3: The data is too big to be uploaded to GitHub, so you will need to downlo
 
 Step 4: Run `main.py` to run the pipeline. 
 
+## Initiate hadoop and spark
+
+start-all.sh
+
+$SPARK_HOME/sbin/start-all.sh
 
 ## Ingest Data:
 
-Make sure remove data on hdfs first!!!
+Make sure remove data on hdfs first
 
 hdfs dfs -rm -r /landing
 
