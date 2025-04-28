@@ -290,9 +290,9 @@ def gold_creation(spark_context):
     
     try: 
        write_start = time.time()
-       df_recommissioned = spark_context.sql(f"SELECT *, 'recommissioned' AS battery_type   FROM silver_layer.recommissioned_batteries_sl")
-       df_regular_alt = spark_context.sql(f"SELECT *, 'regular_alt' AS battery_type  FROM silver_layer.regular_alt_batteries_sl")
-       df_second_life = spark_context.sql(f"SELECT *, 'second_life' AS battery_type  FROM silver_layer.second_life_batteries_sl")
+       df_recommissioned = spark_context.sql(f"SELECT *, 'recommissioned' AS battery_type   FROM silver_layer.recommissioned_batteries_bz")
+       df_regular_alt = spark_context.sql(f"SELECT *, 'regular_alt' AS battery_type  FROM silver_layer.regular_alt_batteries_bz")
+       df_second_life = spark_context.sql(f"SELECT *, 'second_life' AS battery_type  FROM silver_layer.second_life_batteries_bz")
 
        df_union = df_recommissioned.unionByName(df_regular_alt).unionByName(df_second_life)
 
