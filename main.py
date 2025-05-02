@@ -13,7 +13,33 @@ from py4j.protocol import Py4JJavaError
 # client = InsecureClient("http://localhost:9870/")
 client = InsecureClient("http://node-master:9870/")
 local_dir = os.path.expanduser("~/JetStream2_Benchmarking/data")
-                               
+
+spark_static = SparkSession.builder \
+    .appName("Static Allocation App") \
+    .config("spark.sql.catalogImplementation", "hive") \
+    .config("spark.executor.memory", "8g") \
+    .config("spark.driver.memory", "4g") \
+    .config("spark.executor.cores", "2") \
+    .config("spark.executor.instances", "4") \
+    .config("spark.sql.shuffle.partitions", "200") \
+    .config("spark.dynamicAllocation.enabled", "false") \
+    .enableHiveSupport() \
+    .getOrCreate()
+
+spark_dynamic = SparkSession.builder \
+    .appName("Dynamic Allocation App") \
+    .config("spark.sql.catalogImplementation", "hive") \
+    .config("spark.executor.memory", "8g") \
+    .config("spark.driver.memory", "4g") \
+    .config("spark.executor.cores", "2") \
+    .config("spark.executor.instances", "4") \
+    .config("spark.sql.shuffle.partitions", "200") \
+    .config("spark.dynamicAllocation.enabled", "true") \
+    .config("spark.dynamicAllocation.minExecutors", "1") \
+    .config("spark.dynamicAllocation.maxExecutors", "4") \
+    .enableHiveSupport() \
+    .getOrCreate()
+
 spark = SparkSession.builder \
     .appName("Data Pipeline") \
     .config("spark.sql.catalogImplementation", "hive") \
@@ -22,6 +48,9 @@ spark = SparkSession.builder \
     .config("spark.sql.shuffle.partitions", "200")\
     .enableHiveSupport() \
     .getOrCreate()
+
+#spark = spark_static
+#spark = spark_dynamic
 
 spark.sparkContext.setLogLevel("ERROR")
 def clean_hive_tables():
